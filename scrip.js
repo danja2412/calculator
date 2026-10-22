@@ -1,11 +1,17 @@
-// Конфігурація 10 зон та 8 тарифних сіток
+// Конфігурація 10 зон
 const ZONES = ['1', '2', '2.1', '3', '4', '4.1', '5', '5.1', '5.2', '6'];
-const REQUIRED_GRIDS = ['ТС1', 'ТС2', 'ТС1 таксі', 'ТС2 таксі', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95'];
+
+// Конфігурація доступних сіток залежно від типу особи
+const PERSON_GRID_MAP = {
+    physical: ['ТС1', 'ТС2', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95'],
+    legal: ['ТС1', 'ТС2', 'ТС1 таксі', 'ТС2 таксі', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95']
+};
 
 // Збереження тарифних даних
 let tariffData = {};
 
 // Поточний стан вибору
+let selectedPersonType = 'physical';
 let selectedGrid = '';
 let selectedVehicle = '';
 let selectedZone = '';
@@ -24,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autoLoadTariffs();
 });
 
-// Кнопки зон
+// Малювання кнопок зон
 function renderZoneChips() {
     zonesContainer.innerHTML = '';
     ZONES.forEach(zone => {
@@ -38,14 +44,18 @@ function renderZoneChips() {
 }
 
 function initEventListeners() {
+    // Подія зміни Фіз/Юр особи
+    document.querySelectorAll('input[name="personType"]').forEach(radio => {
+        radio.addEventListener('change', handlePersonTypeChange);
+    });
+
     gridSelect.addEventListener('change', handleGridChange);
     vehicleSelect.addEventListener('change', handleVehicleChange);
 }
 
-// Автоматичне фонове завантаження файла `tariffs.xlsx`
+// 1. Автоматичне фонове завантаження `tariffs.xlsx`
 async function autoLoadTariffs() {
     try {
-        // Пробуємо завантажити файл tariffs.xlsx з кореня сайту
         const response = await fetch('tariffs.xlsx');
         if (!response.ok) throw new Error('Файл tariffs.xlsx не знайдено');
 
@@ -68,6 +78,7 @@ function parseWorkbook(workbook) {
     tariffData = {};
 
     workbook.SheetNames.forEach(sheetName => {
+        // Нормалізуємо назву аркуша (наприклад, "Знижка 0,95" -> "Знижка 0.95")
         const cleanSheetName = sheetName.trim().replace(',', '.');
         const worksheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -103,7 +114,6 @@ function parseWorkbook(workbook) {
                 if (colIdx !== undefined && row[colIdx] !== undefined) {
                     price = parseFloat(String(row[colIdx]).replace(',', '.')) || 0;
                 } else {
-                    // Якщо назви у шапці відрізняються, зчитуємо стовпчики по порядку (1..10)
                     const fallbackIndex = ZONES.indexOf(zone) + 1;
                     price = parseFloat(String(row[fallbackIndex] || 0).replace(',', '.')) || 0;
                 }
@@ -113,17 +123,42 @@ function parseWorkbook(workbook) {
     });
 }
 
-// Заповнення випадаючого списку сіток
+// Обробка перемикання Фізособа / Юрособа
+function handlePersonTypeChange(e) {
+    selectedPersonType = e.target.value;
+    selectedGrid = '';
+    selectedVehicle = '';
+    selectedZone = '';
+
+    populateGridDropdown();
+    updateVehicleDropdown();
+    resetZoneSelection();
+    calculateTariff();
+}
+
+// Заповнення списку сіток залежно від обраного типу особи
 function populateGridDropdown() {
     gridSelect.innerHTML = '<option value="">-- Оберіть тарифну сітку --</option>';
-    const availableGrids = Object.keys(tariffData);
+    
+    // Отримуємо масив дозволених сіток для даного типу особи
+    const allowedGrids = PERSON_GRID_MAP[selectedPersonType] || [];
+    
+    // Фільтруємо лише ті сітки, які реально є у розпарсеному файлі Excel
+    const availableInFile = Object.keys(tariffData);
+    const validGrids = allowedGrids.filter(g => availableInFile.includes(g));
 
-    if (availableGrids.length === 0) {
-        gridSelect.innerHTML = '<option value="">-- Тарифи відсутні --</option>';
+    if (validGrids.length === 0) {
+        // Якщо точних назв з крапкою не знайшли, виводимо всі дозволені для цієї категорії
+        allowedGrids.forEach(grid => {
+            const opt = document.createElement('option');
+            opt.value = grid;
+            opt.textContent = grid;
+            gridSelect.appendChild(opt);
+        });
         return;
     }
 
-    availableGrids.forEach(grid => {
+    validGrids.forEach(grid => {
         const opt = document.createElement('option');
         opt.value = grid;
         opt.textContent = grid;
@@ -131,7 +166,7 @@ function populateGridDropdown() {
     });
 }
 
-// Обробка змінити сітки
+// Обробка зміни сітки
 function handleGridChange() {
     selectedGrid = gridSelect.value;
     selectedVehicle = '';
@@ -204,7 +239,7 @@ function disableZoneChips(disabled) {
     });
 }
 
-// Розрахунок підсумку
+// Підсумковий розрахунок
 function calculateTariff() {
     if (!selectedGrid || !selectedVehicle || !selectedZone) {
         totalPriceDisplay.innerHTML = `0.00 <span class="currency">грн</span>`;
@@ -214,8 +249,10 @@ function calculateTariff() {
 
     if (tariffData[selectedGrid]?.[selectedVehicle]?.[selectedZone] !== undefined) {
         const price = tariffData[selectedGrid][selectedVehicle][selectedZone];
+        const personTitle = selectedPersonType === 'physical' ? 'Фіз. особа' : 'Юр. особа';
+
         totalPriceDisplay.innerHTML = `${price.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="currency">грн</span>`;
-        calcDetails.innerText = `Сітка: ${selectedGrid} | ТЗ: ${selectedVehicle} | Зона: ${selectedZone}`;
+        calcDetails.innerText = `${personTitle} | Сітка: ${selectedGrid} | ТЗ: ${selectedVehicle} | Зона: ${selectedZone}`;
     } else {
         totalPriceDisplay.innerHTML = `0.00 <span class="currency">грн</span>`;
         calcDetails.innerText = 'Тариф за обраними параметрами не знайдено.';
@@ -227,9 +264,10 @@ function updateStatus(text, className) {
     dataStatus.className = `status-badge ${className}`;
 }
 
-// Резервний варіант тарифів, якщо файлу tariffs.xlsx ще немає в репозиторії
+// Резервний варіант тарифів
 function loadFallbackTariffs() {
     tariffData = {};
+    const allGrids = ['ТС1', 'ТС2', 'ТС1 таксі', 'ТС2 таксі', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95'];
     const fallbackVehicles = [
         'A1 (Моторолери та мотоцикли до 300 см3)',
         'A2 (Мотоцикли понад 300 см3)',
@@ -245,7 +283,7 @@ function loadFallbackTariffs() {
         'F (Причепи до вантажних)'
     ];
 
-    REQUIRED_GRIDS.forEach(grid => {
+    allGrids.forEach(grid => {
         tariffData[grid] = {};
         fallbackVehicles.forEach((veh, idx) => {
             tariffData[grid][veh] = {};

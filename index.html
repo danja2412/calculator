@@ -20,6 +20,21 @@
             <section class="card form-section">
                 <h2>Параметри розрахунку</h2>
 
+                <!-- Перемикач Фіз / Юр особа -->
+                <div class="form-group">
+                    <label>Тип страхувальника:</label>
+                    <div class="radio-toggle-group">
+                        <label class="radio-option">
+                            <input type="radio" name="personType" value="physical" checked>
+                            <span>Фізична особа</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="personType" value="legal">
+                            <span>Юридична особа</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="gridSelect">Тарифна сітка / Умова:</label>
                     <select id="gridSelect">

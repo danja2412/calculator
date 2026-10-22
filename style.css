@@ -88,6 +88,49 @@ body {
     color: #2d3748;
 }
 
+/* Перемикач Фіз / Юр особа (Radio Toggle) */
+.radio-toggle-group {
+    display: flex;
+    gap: 10px;
+}
+
+.radio-option {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.radio-option span {
+    display: block;
+    padding: 10px;
+    text-align: center;
+    background-color: #f7fafc;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4a5568;
+    transition: all 0.2s;
+}
+
+.radio-option input[type="radio"]:checked + span {
+    background-color: #ebf8ff;
+    border-color: #3182ce;
+    color: #2b6cb0;
+    box-shadow: 0 0 0 1px #3182ce;
+}
+
+.radio-option:hover span {
+    border-color: #3182ce;
+}
+
 select {
     width: 100%;
     padding: 10px 12px;
