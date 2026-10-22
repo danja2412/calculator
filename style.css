@@ -13,13 +13,13 @@ body {
 }
 
 .container {
-    max-width: 1000px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
 .header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .header h1 {
@@ -28,9 +28,25 @@ body {
     margin-bottom: 8px;
 }
 
-.header p {
-    color: #64748b;
-    font-size: 1rem;
+/* Індикатор стану завантаження файлу */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 12px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.status-badge.success {
+    background-color: #c6f6d5;
+    color: #22543d;
+}
+
+.status-badge.warning {
+    background-color: #feebc8;
+    color: #744210;
 }
 
 .calculator-grid {
@@ -41,10 +57,7 @@ body {
 
 @media (min-width: 768px) {
     .calculator-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .result-section {
-        grid-column: span 2;
+        grid-template-columns: 1.2fr 0.8fr;
     }
 }
 
@@ -59,96 +72,11 @@ body {
 .card h2 {
     font-size: 1.2rem;
     color: #2b6cb0;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     border-bottom: 2px solid #ebf8ff;
     padding-bottom: 8px;
 }
 
-/* Upload Section */
-.file-dropzone {
-    border: 2px dashed #cbd5e0;
-    border-radius: 8px;
-    padding: 24px;
-    text-align: center;
-    background-color: #f8fafc;
-    transition: border-color 0.2s;
-}
-
-.file-dropzone:hover {
-    border-color: #3182ce;
-}
-
-.file-info {
-    margin-top: 10px;
-    font-size: 0.9rem;
-    color: #718096;
-    word-break: break-all;
-}
-
-.template-box {
-    margin-top: 14px;
-    font-size: 0.88rem;
-    color: #4a5568;
-    text-align: center;
-}
-
-.btn-link {
-    background: none;
-    border: none;
-    color: #3182ce;
-    text-decoration: underline;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-link:hover {
-    color: #2b6cb0;
-}
-
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-outline {
-    background: #fff;
-    border: 1px solid #3182ce;
-    color: #3182ce;
-}
-
-.btn-outline:hover {
-    background: #ebf8ff;
-}
-
-/* Status Messages */
-.status-message {
-    margin-top: 12px;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    display: none;
-}
-
-.status-message.success {
-    display: block;
-    background-color: #f0fff4;
-    color: #276749;
-    border: 1px solid #c6f6d5;
-}
-
-.status-message.error {
-    display: block;
-    background-color: #fff5f5;
-    color: #9b2c2c;
-    border: 1px solid #fed7d7;
-}
-
-/* Form controls */
 .form-group {
     margin-bottom: 20px;
 }
@@ -182,7 +110,7 @@ select:disabled {
     cursor: not-allowed;
 }
 
-/* Zones Grid (Interactive Chips) */
+/* Кнопки вибору зони */
 .zones-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -220,33 +148,36 @@ select:disabled {
     background-color: #edf2f7;
 }
 
-/* Result Section */
+/* Секція результату */
 .result-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
     background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
 }
 
 .price-label {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #718096;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .price-value {
-    font-size: 2.8rem;
+    font-size: 2.6rem;
     font-weight: 800;
     color: #2b6cb0;
-    margin: 10px 0;
+    margin: 12px 0;
 }
 
 .price-value .currency {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 500;
     color: #4a5568;
 }
 
 .details-summary {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #718096;
 }

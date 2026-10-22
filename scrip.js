@@ -1,34 +1,30 @@
-// Конфігурація зон та тарифних сіток
+// Конфігурація 10 зон та 8 тарифних сіток
 const ZONES = ['1', '2', '2.1', '3', '4', '4.1', '5', '5.1', '5.2', '6'];
+const REQUIRED_GRIDS = ['ТС1', 'ТС2', 'ТС1 таксі', 'ТС2 таксі', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95'];
 
-// Глобальний об'єкт для збереження розпарсених даних тарифів
-// Структура: { "ТС1": { "A1": { "1": 1200, "2": 1100, ... } } }
+// Збереження тарифних даних
 let tariffData = {};
 
-// Поточний стан вибору користувача
+// Поточний стан вибору
 let selectedGrid = '';
 let selectedVehicle = '';
 let selectedZone = '';
 
-// DOM Елементи
-const excelFileInput = document.getElementById('excelFile');
-const fileNameDisplay = document.getElementById('fileName');
-const statusMessage = document.getElementById('statusMessage');
-const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-
+// DOM елементи
+const dataStatus = document.getElementById('dataStatus');
 const gridSelect = document.getElementById('gridSelect');
 const vehicleSelect = document.getElementById('vehicleSelect');
 const zonesContainer = document.getElementById('zonesContainer');
 const totalPriceDisplay = document.getElementById('totalPrice');
 const calcDetails = document.getElementById('calcDetails');
 
-// Ініціалізація сторінки
 document.addEventListener('DOMContentLoaded', () => {
     renderZoneChips();
     initEventListeners();
+    autoLoadTariffs();
 });
 
-// Малювання кнопок зон
+// Кнопки зон
 function renderZoneChips() {
     zonesContainer.innerHTML = '';
     ZONES.forEach(zone => {
@@ -41,75 +37,56 @@ function renderZoneChips() {
     });
 }
 
-// Події
 function initEventListeners() {
-    excelFileInput.addEventListener('change', handleFileUpload);
-    downloadTemplateBtn.addEventListener('click', generateAndDownloadTemplate);
     gridSelect.addEventListener('change', handleGridChange);
     vehicleSelect.addEventListener('change', handleVehicleChange);
 }
 
-// 1. Обробка завантаження Excel файлу
-function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Автоматичне фонове завантаження файла `tariffs.xlsx`
+async function autoLoadTariffs() {
+    try {
+        // Пробуємо завантажити файл tariffs.xlsx з кореня сайту
+        const response = await fetch('tariffs.xlsx');
+        if (!response.ok) throw new Error('Файл tariffs.xlsx не знайдено');
 
-    fileNameDisplay.innerText = file.name;
-    showStatus('Зчитування файлу...', 'info');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        
+        parseWorkbook(workbook);
+        updateStatus('Тарифи актуальні (з файлу)', 'success');
+    } catch (err) {
+        console.warn('Не вдалося завантажити tariffs.xlsx. Підключаємо базові рішення:', err.message);
+        loadFallbackTariffs();
+        updateStatus('Тестові тарифи (покладіть tariffs.xlsx у репозиторій)', 'warning');
+    }
 
-    const reader = new FileReader();
-    reader.onload = function (evt) {
-        try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            parseWorkbook(workbook);
-            showStatus('Тарифну сітку успішно завантажено!', 'success');
-            
-            // Активуємо вибір сітки
-            gridSelect.disabled = false;
-            updateVehicleDropdown();
-            calculateTariff();
-        } catch (err) {
-            console.error(err);
-            showStatus('Помилка зчитування Excel файлу. Перевірте формат!', 'error');
-        }
-    };
-    reader.readAsArrayBuffer(file);
+    populateGridDropdown();
 }
 
-// Очищення та нормалізація назв аркушів
-function normalizeSheetName(name) {
-    return name.trim().replace(',', '.');
-}
-
-// Парсинг усіх аркушів Excel у внутрішню структуру
+// Парсинг Excel книги
 function parseWorkbook(workbook) {
     tariffData = {};
 
     workbook.SheetNames.forEach(sheetName => {
-        const normalizedName = normalizeSheetName(sheetName);
+        const cleanSheetName = sheetName.trim().replace(',', '.');
         const worksheet = workbook.Sheets[sheetName];
-        
-        // Преобразуємо аркуш у масив масивів (rows)
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        if (rows.length < 2) return; // Порожній або лише заголовок
+        if (rows.length < 2) return;
 
-        tariffData[normalizedName] = {};
-
-        // Рядок 0 — заголовки (Тип ТЗ, Зона 1, Зона 2...)
+        tariffData[cleanSheetName] = {};
         const headerRow = rows[0].map(val => String(val || '').trim());
-        
-        // Знаходимо індекси колонок для кожної зони
+
+        // Пошук колонок за зоною
         const zoneColIndexes = {};
         ZONES.forEach(zone => {
-            const colIdx = headerRow.findIndex(h => h === zone || h === `Зона ${zone}` || h === `Зона ${zone.replace('.', ',')}`);
-            if (colIdx !== -1) {
-                zoneColIndexes[zone] = colIdx;
-            }
+            const colIdx = headerRow.findIndex(h => 
+                h === zone || 
+                h === `Зона ${zone}` || 
+                h === `Зона ${zone.replace('.', ',')}`
+            );
+            if (colIdx !== -1) zoneColIndexes[zone] = colIdx;
         });
 
-        // Обробка рядочків даних (з 1-го рядка)
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (!row || row.length === 0) continue;
@@ -117,38 +94,60 @@ function parseWorkbook(workbook) {
             const vehicleType = String(row[0] || '').trim();
             if (!vehicleType) continue;
 
-            tariffData[normalizedName][vehicleType] = {};
+            tariffData[cleanSheetName][vehicleType] = {};
 
             ZONES.forEach(zone => {
                 const colIdx = zoneColIndexes[zone];
                 let price = 0;
+
                 if (colIdx !== undefined && row[colIdx] !== undefined) {
                     price = parseFloat(String(row[colIdx]).replace(',', '.')) || 0;
-                } else if (i < row.length) {
-                    // Якщо назви зон у заголовоку не збіглися, використовуємо позиційний порядковий номер (1..10)
+                } else {
+                    // Якщо назви у шапці відрізняються, зчитуємо стовпчики по порядку (1..10)
                     const fallbackIndex = ZONES.indexOf(zone) + 1;
                     price = parseFloat(String(row[fallbackIndex] || 0).replace(',', '.')) || 0;
                 }
-                tariffData[normalizedName][vehicleType][zone] = price;
+                tariffData[cleanSheetName][vehicleType][zone] = price;
             });
         }
     });
 }
 
-// 2. Обробка вибору сітки
+// Заповнення випадаючого списку сіток
+function populateGridDropdown() {
+    gridSelect.innerHTML = '<option value="">-- Оберіть тарифну сітку --</option>';
+    const availableGrids = Object.keys(tariffData);
+
+    if (availableGrids.length === 0) {
+        gridSelect.innerHTML = '<option value="">-- Тарифи відсутні --</option>';
+        return;
+    }
+
+    availableGrids.forEach(grid => {
+        const opt = document.createElement('option');
+        opt.value = grid;
+        opt.textContent = grid;
+        gridSelect.appendChild(opt);
+    });
+}
+
+// Обробка змінити сітки
 function handleGridChange() {
     selectedGrid = gridSelect.value;
+    selectedVehicle = '';
+    selectedZone = '';
     updateVehicleDropdown();
+    resetZoneSelection();
     calculateTariff();
 }
 
-// Оновлення списку типів ТЗ на основі обраної сітки
+// Оновлення списку ТЗ
 function updateVehicleDropdown() {
     vehicleSelect.innerHTML = '';
     
     if (!selectedGrid || !tariffData[selectedGrid]) {
         vehicleSelect.disabled = true;
-        vehicleSelect.innerHTML = '<option value="">-- Оберіть доступну сітку --</option>';
+        vehicleSelect.innerHTML = '<option value="">-- Спочатку оберіть сітку --</option>';
         disableZoneChips(true);
         return;
     }
@@ -175,42 +174,37 @@ function updateVehicleDropdown() {
     disableZoneChips(false);
 }
 
-// 3. Обробка вибору типу ТЗ
 function handleVehicleChange() {
     selectedVehicle = vehicleSelect.value;
     calculateTariff();
 }
 
-// 4. Обробка вибору Зони
 function selectZone(zone) {
     if (gridSelect.disabled || !vehicleSelect.value) return;
 
     selectedZone = zone;
-    
-    // Оновлення стилів кнопок зон
     document.querySelectorAll('.zone-chip').forEach(chip => {
-        if (chip.dataset.zone === zone) {
-            chip.classList.add('selected');
-        } else {
-            chip.classList.remove('selected');
-        }
+        chip.classList.toggle('selected', chip.dataset.zone === zone);
     });
 
     calculateTariff();
 }
 
-function disableZoneChips(disabled) {
+function resetZoneSelection() {
+    selectedZone = '';
     document.querySelectorAll('.zone-chip').forEach(chip => {
-        if (disabled) {
-            chip.classList.add('disabled');
-            chip.classList.remove('selected');
-        } else {
-            chip.classList.remove('disabled');
-        }
+        chip.classList.remove('selected');
     });
 }
 
-// 5. Розрахунок підсумкового тарифу
+function disableZoneChips(disabled) {
+    document.querySelectorAll('.zone-chip').forEach(chip => {
+        chip.classList.toggle('disabled', disabled);
+        if (disabled) chip.classList.remove('selected');
+    });
+}
+
+// Розрахунок підсумку
 function calculateTariff() {
     if (!selectedGrid || !selectedVehicle || !selectedZone) {
         totalPriceDisplay.innerHTML = `0.00 <span class="currency">грн</span>`;
@@ -218,30 +212,25 @@ function calculateTariff() {
         return;
     }
 
-    if (tariffData[selectedGrid] &&
-        tariffData[selectedGrid][selectedVehicle] &&
-        tariffData[selectedGrid][selectedVehicle][selectedZone] !== undefined) {
-        
+    if (tariffData[selectedGrid]?.[selectedVehicle]?.[selectedZone] !== undefined) {
         const price = tariffData[selectedGrid][selectedVehicle][selectedZone];
-        
         totalPriceDisplay.innerHTML = `${price.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="currency">грн</span>`;
         calcDetails.innerText = `Сітка: ${selectedGrid} | ТЗ: ${selectedVehicle} | Зона: ${selectedZone}`;
     } else {
         totalPriceDisplay.innerHTML = `0.00 <span class="currency">грн</span>`;
-        calcDetails.innerText = 'Тариф за обраними параметрами не знайдено у файлі.';
+        calcDetails.innerText = 'Тариф за обраними параметрами не знайдено.';
     }
 }
 
-// Статусні повідомлення
-function showStatus(msg, type) {
-    statusMessage.innerText = msg;
-    statusMessage.className = `status-message ${type}`;
+function updateStatus(text, className) {
+    dataStatus.innerText = text;
+    dataStatus.className = `status-badge ${className}`;
 }
 
-// 6. Генерація та скачування зразкового шаблону Excel
-function generateAndDownloadTemplate() {
-    const grids = ['ТС1', 'ТС2', 'ТС1 таксі', 'ТС2 таксі', 'ТС1 МАН', 'ТС2 МАН', 'Знижка 0.9', 'Знижка 0.95'];
-    const sampleVehicles = [
+// Резервний варіант тарифів, якщо файлу tariffs.xlsx ще немає в репозиторії
+function loadFallbackTariffs() {
+    tariffData = {};
+    const fallbackVehicles = [
         'A1 (Моторолери та мотоцикли до 300 см3)',
         'A2 (Мотоцикли понад 300 см3)',
         'B1 (Легкові до 1600 см3)',
@@ -256,29 +245,14 @@ function generateAndDownloadTemplate() {
         'F (Причепи до вантажних)'
     ];
 
-    const wb = XLSX.utils.book_new();
-
-    grids.forEach(gridName => {
-        const header = ['Тип ТЗ', ...ZONES];
-        const rows = [header];
-
-        sampleVehicles.forEach((veh, idx) => {
-            const basePrice = (idx + 1) * 250;
-            const row = [veh];
-            
+    REQUIRED_GRIDS.forEach(grid => {
+        tariffData[grid] = {};
+        fallbackVehicles.forEach((veh, idx) => {
+            tariffData[grid][veh] = {};
+            const basePrice = (idx + 1) * 300;
             ZONES.forEach((z, zIdx) => {
-                // Генерація тестових розрахованих цін залежно від зони
-                const zoneMultiplier = 1.5 - (zIdx * 0.08);
-                const price = Math.round(basePrice * zoneMultiplier);
-                row.push(price);
+                tariffData[grid][veh][z] = Math.round(basePrice * (1.6 - zIdx * 0.07));
             });
-            
-            rows.push(row);
         });
-
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, gridName);
     });
-
-    XLSX.writeFile(wb, 'Тарифна_сітка_страхування.xlsx');
 }
