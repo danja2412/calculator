@@ -1,0 +1,252 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #f4f7f9;
+    color: #2c3e50;
+    line-height: 1.5;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 2rem;
+    color: #1a365d;
+    margin-bottom: 8px;
+}
+
+.header p {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .calculator-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .result-section {
+        grid-column: span 2;
+    }
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+}
+
+.card h2 {
+    font-size: 1.2rem;
+    color: #2b6cb0;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #ebf8ff;
+    padding-bottom: 8px;
+}
+
+/* Upload Section */
+.file-dropzone {
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    background-color: #f8fafc;
+    transition: border-color 0.2s;
+}
+
+.file-dropzone:hover {
+    border-color: #3182ce;
+}
+
+.file-info {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #718096;
+    word-break: break-all;
+}
+
+.template-box {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: #4a5568;
+    text-align: center;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #3182ce;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    color: #2b6cb0;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outline {
+    background: #fff;
+    border: 1px solid #3182ce;
+    color: #3182ce;
+}
+
+.btn-outline:hover {
+    background: #ebf8ff;
+}
+
+/* Status Messages */
+.status-message {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.status-message.success {
+    display: block;
+    background-color: #f0fff4;
+    color: #276749;
+    border: 1px solid #c6f6d5;
+}
+
+.status-message.error {
+    display: block;
+    background-color: #fff5f5;
+    color: #9b2c2c;
+    border: 1px solid #fed7d7;
+}
+
+/* Form controls */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2d3748;
+}
+
+select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e0;
+    background-color: #fff;
+    font-size: 0.95rem;
+    color: #2d3748;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+select:focus {
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+}
+
+select:disabled {
+    background-color: #edf2f7;
+    cursor: not-allowed;
+}
+
+/* Zones Grid (Interactive Chips) */
+.zones-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.zone-chip {
+    padding: 10px 4px;
+    text-align: center;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background-color: #f7fafc;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4a5568;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.zone-chip:hover {
+    border-color: #3182ce;
+    background-color: #ebf8ff;
+}
+
+.zone-chip.selected {
+    background-color: #3182ce;
+    color: #ffffff;
+    border-color: #3182ce;
+}
+
+.zone-chip.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #edf2f7;
+}
+
+/* Result Section */
+.result-section {
+    text-align: center;
+    background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+}
+
+.price-label {
+    font-size: 1rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.price-value {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #2b6cb0;
+    margin: 10px 0;
+}
+
+.price-value .currency {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.details-summary {
+    font-size: 0.95rem;
+    color: #718096;
+}
